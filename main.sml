@@ -5,9 +5,10 @@ structure Source = struct
         marks : (string * int) list ref
     }
 
-    fun eof (buf: t): bool = String.size (#buf buf) <= 0
+    fun eof (buf: t): bool = 
+        (String.size (#buf buf) <= 0) orelse (String.size (#buf buf) <= !(#pos buf))
     fun pos (buf: t): int = !(#pos buf)
-    fun peek (buf: t): char = String.substring (#buf buf, 0)
+    fun peek (buf: t): char = String.substring (#buf buf, !(#pos buf))
     fun try_peek (buf: t): char option = 
         if eof buf then NONE else SOME (peek buf)
     fun advance (buf: t): t = ((#pos buf) := !(#pos buf) + 1; buf)
@@ -35,17 +36,24 @@ datatype expr =
     LIST of expr vector
 
 fun isAtomChar (c: char): bool = (c >= #"A") andalso (c <= #"Z")
+fun isWhitespace (c: char): bool = 
+    case c of
+        #" " => true
+        #"\n" => true
+        #"\t" => true
+        _ => false
 
 fun parseAtom (buf: Source.t): expr = 
     let 
         val start = Source.pos buf
-        fun helper  i = 
+        fun helper  i = (TextIO.output (TextIO.stdOut, (Int.toString i) ^ "\n");
             case Source.try_peek buf of
-                NONE => ATOM (Source.substring (buf, start, i))
-                SOME c =>
+            NONE => ATOM (Source.substring (buf, start, i))
+            SOME c =>
             if isAtomChar c
-            then (Source.advance buf; helper (i+1))
+            then (Source.advance buf; helper (i + 1))
             else ATOM (Source.substring (buf, start, i))
+    )
     in helper start
     end
 
@@ -55,7 +63,10 @@ fun parseExpr (buf: Source.t): expr option =
     if Source.eof buf then NONE else
     case Source.peek buf of 
         #"(" => parseList buf
-        _ => SOME (parseAtom buf)
+        c => 
+        if isWhitespace c then (parseExpr (Source.advance buf)) 
+        else if isAtomChar c then SOME (parseAtom buf)
+        else NONE
 
 fun ppExpr (e: expr): string = 
     case e of
