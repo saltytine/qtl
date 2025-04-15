@@ -46,14 +46,13 @@ fun isWhitespace (c: char): bool =
 fun parseAtom (buf: Source.t): expr = 
     let 
         val start = Source.pos buf
-        fun helper  i = (TextIO.output (TextIO.stdOut, (Int.toString i) ^ "\n");
+        fun helper  i = 
             case Source.try_peek buf of
             NONE => ATOM (Source.substring (buf, start, i))
             SOME c =>
             if isAtomChar c
             then (Source.advance buf; helper (i + 1))
             else ATOM (Source.substring (buf, start, i))
-    )
     in helper start
     end
 
