@@ -1,7 +1,7 @@
 SML = mosmlc
 
 qtl: main.sml
-	    $(SML) -o $@ $<
+	    $(SML) -o $@ -toplevel $<
 
 run: qtl
 		cat prog | ./qtl
