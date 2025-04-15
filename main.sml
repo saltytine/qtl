@@ -12,7 +12,7 @@ structure Source = struct
     fun try_peek (buf: t): char option = 
         if eof buf then NONE else SOME (peek buf)
     fun advance (buf: t): t = ((#pos buf) := !(#pos buf) + 1; buf)
-    fun substringstring (buf: t, i: int, j:int) = String.substringstring (#buf buf, i, j)
+    fun substring (buf: t, i: int, j:int) = String.substring (#buf buf, i, j)
 
     fun start (buf: t, msg: string): unit = 
         (#marks buf) := (msg, !(#pos buf)) :: !(#marks buf)
