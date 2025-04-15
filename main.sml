@@ -1,3 +1,4 @@
+fun prn (str: string): unit = TextIO.output (TextIO.stdOut, str ^ "\n")
 structure Source = struct
     type t = {
         buf : string,
@@ -23,6 +24,7 @@ structure Source = struct
             (m::ms) => ms)
         end
 
+
     fun fromString (str: string): t = 
         { buf = str, pos = ref 0, marks = ref [] }
     fun fromStream (ss: TextIO.instream): t =
@@ -31,55 +33,78 @@ structure Source = struct
         end
 end
 
-datatype expr =
-    ATOM of string
-    LIST of expr vector
+structure Parser :> sig
+    type expr
+    val parseExpr: Source.t -> expr option
+    val ppExpr: expr -> string
+end = struct
+    datatype expr =
+        ATOM of string
+        LIST of expr vector
 
-fun isAtomChar (c: char): bool = (c >= #"A") andalso (c <= #"Z")
-fun isWhitespace (c: char): bool = 
-    case c of
-        #" " => true
-        #"\n" => true
-        #"\t" => true
-        _ => false
+    (* todo: some chars can be after the initial pos but not in *)
+    fun isAtomChar (c: char): bool = 
+        ((c >= #"A") andalso (c <= #"Z")) orelse
+        ((c >= #"a") andalso (c <= #"z"))
+    fun isWhitespace (c: char): bool = 
+        case c of
+            #" " => true
+            #"\n" => true
+            #"\t" => true
+            _ => false
+    
+    fun ppExpr (e: expr): string = 
+        case e of
+            ATOM s => s
+            LIST l => 
+            let fun f (e, a) = a ^ " " ^ (ppExpr e)
+            in "(" ^ (Vector.foldl f "" l) ^ ")"
+            end
 
-fun parseAtom (buf: Source.t): expr = 
-    let 
-        val start = Source.pos buf
-        fun helper  i = 
-            case Source.try_peek buf of
-            NONE => ATOM (Source.substring (buf, start, i))
-            SOME c =>
-            if isAtomChar c
-            then (Source.advance buf; helper (i + 1))
-            else ATOM (Source.substring (buf, start, i))
-    in helper start
+    local
+        fun parseAtom (buf: Source.t): expr = 
+            let 
+                val start = Source.pos buf
+                fun helper  n = 
+                    case Source.try_peek buf of
+                    NONE => ATOM (Source.substring (buf, start, n))
+                    SOME c =>
+                    if isAtomChar c
+                    then (Source.advance buf; helper (n + 1))
+                    else ATOM (Source.substring (buf, start, i))
+            in helper 0
+            end
+
+        and parseList (buf: Source.t): expr option = 
+            let
+                fun helper res = 
+                    case Source.try_peek buf of
+                        NONE => SOME (LIST (Vector.fromList (List.rev res)))
+                        SOME #")" => SOME (LIST (Vector.fromList (List.rev res)))
+                        _ => case parseExprHidden buf of
+                            NONE => NONE
+                            SOME e => helper (e :: res)
+            in (Source.advance buf; helper [])
+            end
+
+        and parseExprHidden (buf: Source.t): expr option = 
+            if Source.eof buf then NONE else
+            case Source.peek buf of 
+                #"(" => parseList buf
+                c => 
+                if isWhitespace c then (parseExpr (Source.advance buf)) 
+                else if isAtomChar c then SOME (parseAtom buf)
+                else NONE
+    in
+        val parseExpr = parseExprHidden
     end
-
-fun parseList (buf: Source.t): expr option = SOME (ATOM "list")
-
-fun parseExpr (buf: Source.t): expr option = 
-    if Source.eof buf then NONE else
-    case Source.peek buf of 
-        #"(" => parseList buf
-        c => 
-        if isWhitespace c then (parseExpr (Source.advance buf)) 
-        else if isAtomChar c then SOME (parseAtom buf)
-        else NONE
-
-fun ppExpr (e: expr): string = 
-    case e of
-        ATOM s => s
-        LIST l => 
-        let fun f (e, a) = a ^ " " ^ (ppExpr e)
-        in "(" ^ (Vector.foldl f "" l) ^ ")"
-        end
+end
 
 fun main () = 
     let 
         val source = Source.fromStream TextIO.stdIn
-        val prog = parseExpr source
-        val repr = case prog of SOME p => ppExpr p | NONE => "ERROR YOU RETARD!"
+        val prog = Parser.parseExpr source
+        val repr = case prog of SOME p => Parser.ppExpr p | NONE => "ERROR YOU RETARD!"
     in TextIO.output (TextIO.stdOut, repr ^ "\n")
     end
 
