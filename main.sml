@@ -49,6 +49,34 @@ structure Source = struct
         end
 end
 
+structure Type :> sig
+    type t
+end = struct
+    datatype t = {
+        FUN of (qtype vector) * qtype
+        SUM of qtype vector
+        PROD of qtype vector
+    }
+end
+
+struct Value :> sig
+    type t
+end = struct
+    datatype t =
+        LAM of unit
+        PRIM of int
+end
+
+structure Id :> sig
+    type t
+end = struct
+    type t = {
+        name: string,
+        qtype: Type.t,
+        value: Value.t,
+    }
+end
+
 structure Parser :> sig
     type expr
     val parseExpr: Source.t -> expr option
