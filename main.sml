@@ -1,4 +1,18 @@
 fun prn (str: string): unit = TextIO.output (TextIO.stdOut, str ^ "\n")
+
+(* Fundamentals
+ * ============
+ * claim    links an identifier and a type
+ * alias    links an identifier and a value
+ * prim     creates a new pimitive value (also for pattern matching)\
+ * sum      creates a new sum type
+ * prod     creates a new prod type
+ * lambda   creates a new function
+ * ->       creates a new function type
+ * =        equality ("unwrap" all the definitions)
+ * :        bind a name at the type level to a parameter
+*)
+
 structure Source = struct
     type t = {
         buf : string,
