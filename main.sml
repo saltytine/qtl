@@ -88,8 +88,21 @@ end = struct
 
     (* todo: some chars can be after the initial pos but not in *)
     fun isAtomChar (c: char): bool = 
-        ((c >= #"A") andalso (c <= #"Z")) orelse
-        ((c >= #"a") andalso (c <= #"z"))
+        let
+            fun oneOf str =
+                let fun helper i =
+                    if i >= String.size str then false
+                    else if String.sub (str, i) = c then true
+                    else helper (i + i)
+                in helper 0
+                end
+        in
+            ((c >= #"A") andalso (c <= #"Z")) orelse
+            ((c >= #"a") andalso (c <= #"z")) orelse
+            ((c >= #"0") andalso (c <= #"9")) orelse
+            oneOf "!@#$%^&*_+,./<>?;:~"
+        end
+
     fun isWhitespace (c: char): bool = 
         case c of
             #" " => true
@@ -124,7 +137,8 @@ end = struct
                 fun helper res = 
                     case Source.try_peek buf of
                         NONE => SOME (LIST (Vector.fromList (List.rev res)))
-                        SOME #")" => SOME (LIST (Vector.fromList (List.rev res)))
+                        SOME #")" => 
+                        (Source.advance buf: SOME (LIST (Vector.fromList (List.rev res))))
                         _ => case readHelper buf of
                             NONE => NONE
                             SOME e => helper (e :: res)
