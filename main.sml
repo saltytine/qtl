@@ -77,7 +77,7 @@ end = struct
     }
 end
 
-structure Expander :> sig
+structure Reader :> sig
     type t
     val expand: Source.t -> t option
     val pp: t -> string
@@ -106,7 +106,7 @@ end = struct
             end
 
     local
-        fun parseAtom (buf: Source.t): t = 
+        fun readAtom (buf: Source.t): t = 
             let 
                 val start = Source.pos buf
                 fun helper  n = 
@@ -119,35 +119,41 @@ end = struct
             in helper 0
             end
 
-        and parseList (buf: Source.t): t option = 
+        and readList (buf: Source.t): t option = 
             let
                 fun helper res = 
                     case Source.try_peek buf of
                         NONE => SOME (LIST (Vector.fromList (List.rev res)))
                         SOME #")" => SOME (LIST (Vector.fromList (List.rev res)))
-                        _ => case expandHelper buf of
+                        _ => case readHelper buf of
                             NONE => NONE
                             SOME e => helper (e :: res)
             in (Source.advance buf; helper [])
             end
 
-        and expandHelper (buf: Source.t): t option = 
+        and readHelper (buf: Source.t): t option = 
             if Source.eof buf then NONE else
             case Source.peek buf of 
-                #"(" => parseList buf
+                #"(" => readList buf
                 c => 
-                if isWhitespace c then (expandHelper (Source.advance buf)) 
-                else if isAtomChar c then SOME (parseAtom buf)
+                if isWhitespace c then (readHelper (Source.advance buf)) 
+                else if isAtomChar c then SOME (readAtom buf)
                 else NONE
     in
-        val expand = expandHelper
+        val read = readHelper
     end
+end
+
+structure Parser :> sig
+    type t
+end = struct
+    type t = unit
 end
 
 fun main () = 
     let 
         val source = Source.fromStream TextIO.stdIn
-        val prog = Expander.expand source
+        val prog = Reader.expand source
         val repr = case prog of SOME p => Expander.pp p | NONE => "ERROR YOU RETARD!"
     in TextIO.output (TextIO.stdOut, repr ^ "\n")
     end
