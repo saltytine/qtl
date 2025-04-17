@@ -11,7 +11,7 @@ fun prn (str: string): unit = TextIO.output (TextIO.stdOut, str ^ "\n")
  * ->       creates a new function type
  * =        equality ("unwrap" all the definitions)
  * :        bind a name at the type level to a parameter (with usage)
- * macro    introduces a type-less s-expr transformer
+ * macro    introduces a type-less s-t transformer
  * match    deconstruct a value
 *)
 
@@ -53,13 +53,13 @@ structure Type :> sig
     type t
 end = struct
     datatype t = {
-        FUN of (qtype vector) * qtype
-        SUM of qtype vector
-        PROD of qtype vector
+        FUN of (t vector) * t
+        SUM of t vector
+        PROD of t vector
     }
 end
 
-struct Value :> sig
+structure Value :> sig
     type t
 end = struct
     datatype t =
@@ -77,14 +77,14 @@ end = struct
     }
 end
 
-structure Parser :> sig
-    type expr
-    val parseExpr: Source.t -> expr option
-    val ppExpr: expr -> string
+structure Expander :> sig
+    type t
+    val expand: Source.t -> t option
+    val pp: t -> string
 end = struct
-    datatype expr =
+    datatype t =
         ATOM of string
-        LIST of expr vector
+        LIST of t vector
 
     (* todo: some chars can be after the initial pos but not in *)
     fun isAtomChar (c: char): bool = 
@@ -97,16 +97,16 @@ end = struct
             #"\t" => true
             _ => false
     
-    fun ppExpr (e: expr): string = 
+    fun pp (e: t): string = 
         case e of
             ATOM s => s
             LIST l => 
-            let fun f (e, a) = a ^ " " ^ (ppExpr e)
+            let fun f (e, a) = a ^ " " ^ (pp e)
             in "(" ^ (Vector.foldl f "" l) ^ ")"
             end
 
     local
-        fun parseAtom (buf: Source.t): expr = 
+        fun parseAtom (buf: Source.t): t = 
             let 
                 val start = Source.pos buf
                 fun helper  n = 
@@ -119,36 +119,36 @@ end = struct
             in helper 0
             end
 
-        and parseList (buf: Source.t): expr option = 
+        and parseList (buf: Source.t): t option = 
             let
                 fun helper res = 
                     case Source.try_peek buf of
                         NONE => SOME (LIST (Vector.fromList (List.rev res)))
                         SOME #")" => SOME (LIST (Vector.fromList (List.rev res)))
-                        _ => case parseExprHidden buf of
+                        _ => case expandHelper buf of
                             NONE => NONE
                             SOME e => helper (e :: res)
             in (Source.advance buf; helper [])
             end
 
-        and parseExprHidden (buf: Source.t): expr option = 
+        and expandHelper (buf: Source.t): t option = 
             if Source.eof buf then NONE else
             case Source.peek buf of 
                 #"(" => parseList buf
                 c => 
-                if isWhitespace c then (parseExpr (Source.advance buf)) 
+                if isWhitespace c then (expandHelper (Source.advance buf)) 
                 else if isAtomChar c then SOME (parseAtom buf)
                 else NONE
     in
-        val parseExpr = parseExprHidden
+        val expand = expandHelper
     end
 end
 
 fun main () = 
     let 
         val source = Source.fromStream TextIO.stdIn
-        val prog = Parser.parseExpr source
-        val repr = case prog of SOME p => Parser.ppExpr p | NONE => "ERROR YOU RETARD!"
+        val prog = Expander.expand source
+        val repr = case prog of SOME p => Expander.pp p | NONE => "ERROR YOU RETARD!"
     in TextIO.output (TextIO.stdOut, repr ^ "\n")
     end
 
