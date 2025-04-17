@@ -1,4 +1,4 @@
-(deftype Class () (Type 0)\
+(deftype Class () (Type 0)
     [ceo Class] [executive Class] [manager Class] [worker Class])
 
 (defstruct Person () (Type 0)
