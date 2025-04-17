@@ -10,7 +10,9 @@ fun prn (str: string): unit = TextIO.output (TextIO.stdOut, str ^ "\n")
  * lambda   creates a new function
  * ->       creates a new function type
  * =        equality ("unwrap" all the definitions)
- * :        bind a name at the type level to a parameter
+ * :        bind a name at the type level to a parameter (with usage)
+ * macro    introduces a type-less s-expr transformer
+ * match    deconstruct a value
 *)
 
 structure Source = struct
