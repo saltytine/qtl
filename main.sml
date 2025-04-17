@@ -136,9 +136,10 @@ end = struct
             let
                 fun helper res = 
                     case Source.try_peek buf of
-                        NONE => SOME (LIST (Vector.fromList (List.rev res)))
-                        SOME #")" => 
-                        (Source.advance buf: SOME (LIST (Vector.fromList (List.rev res))))
+                        NONE => NONE
+                        SOME #")" =>
+                        (pp (LIST (Vector.fromList (List.rev res)));
+                        Source.advance buf: SOME (LIST (Vector.fromList (List.rev res))))
                         _ => case readHelper buf of
                             NONE => NONE
                             SOME e => helper (e :: res)
