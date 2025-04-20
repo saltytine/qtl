@@ -168,14 +168,14 @@ end = struct
 
     fun pp (p: t) string = "unimplemented"
 
-    fun parse (r: Reader.t): t option = NONE
+    fun parse (r: Reader.t): t option = SOME ()
 end
 
 fun main () = 
     let 
         val source = Source.fromStream TextIO.stdIn
-        val parsed = Option.composePartial (Parser.parse, Reader.expand) source
-        val repr = case prog of SOME p => Parser.pp parsed | NONE => "ERROR YOU RETARD!"
+        val parsed = Option.composePartial (Parser.parse, Reader.read) source
+        val repr = case parsed of SOME p => Parser.pp p | NONE => "ERROR YOU RETARD!"
     in TextIO.output (TextIO.stdOut, repr ^ "\n")
     end
 
