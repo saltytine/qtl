@@ -40,7 +40,6 @@ structure Source = struct
             (m::ms) => ms)
         end
 
-
     fun fromString (str: string): t = 
         { buf = str, pos = ref 0, marks = ref [] }
     fun fromStream (ss: TextIO.instream): t =
@@ -85,6 +84,7 @@ end = struct
     datatype t =
         ATOM of string
         LIST of t vector
+        FOREST of t vector
 
     (* todo: some chars can be after the initial pos but not in *)
     fun isAtomChar (c: char): bool = 
@@ -117,6 +117,10 @@ end = struct
             let fun f (e, a) = a ^ " " ^ (pp e)
             in "(" ^ (Vector.foldl f "" l) ^ ")"
             end
+            FOREST l => 
+            let fun f (e, a) = a ^ "\n" ^ (pp e)
+            in Vector.foldl f "" l
+            end
 
     local
         fun readAtom (buf: Source.t): t = 
@@ -145,6 +149,12 @@ end = struct
             in (Source.advance buf; helper [])
             end
 
+        and readForest (res: t list) (buf: Source.t) : t option = 
+            NONE => if Source.eof buf 
+                then SOME (FOREST (Vector.fromlist (List.rev res)))
+                else NONE
+            SOME e => readForest (e :: res) buf
+
         and readHelper (buf: Source.t): t option = 
             if Source.eof buf then NONE else
             case Source.peek buf of 
@@ -154,7 +164,7 @@ end = struct
                 else if isAtomChar c then SOME (readAtom buf)
                 else NONE
     in
-        val read = readHelper
+        val read = readForest []
     end
 end
 
@@ -164,18 +174,34 @@ structure Parser :> sig
     val pp: t -> string
     val parse: Reader.t -> t option
 end = struct
+    datatype ops = 
+        CLAIM 
+      | ALIAS 
+      | LAMBDA 
+      | FUNCTION 
+      | BIND
+      | SUM
+      | PROD
+      | MATCH
+      | EQUAL
+      | PRIM
+
     type t = unit
 
     fun pp (p: t) string = "unimplemented"
 
-    fun parse (r: Reader.t): t option = SOME ()
+    fun parse (r: Reader.t): t option = NONE
 end
 
 fun main () = 
     let 
         val source = Source.fromStream TextIO.stdIn
+        val prog = Reader.read source
+        val repr = case prog of SOME p => Reader.pp p | NONE => "ERROR YOU RETARD!"
+        (*
         val parsed = Option.composePartial (Parser.parse, Reader.read) source
         val repr = case parsed of SOME p => Parser.pp p | NONE => "ERROR YOU RETARD!"
+        *)
     in TextIO.output (TextIO.stdOut, repr ^ "\n")
     end
 
