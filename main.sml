@@ -93,7 +93,7 @@ end = struct
                 let fun helper i =
                     if i >= String.size str then false
                     else if String.sub (str, i) = c then true
-                    else helper (i + i)
+                    else helper (i + 1)
                 in helper 0
                 end
         in
@@ -138,8 +138,7 @@ end = struct
                     case Source.try_peek buf of
                         NONE => NONE
                         SOME #")" =>
-                        (pp (LIST (Vector.fromList (List.rev res)));
-                        Source.advance buf: SOME (LIST (Vector.fromList (List.rev res))))
+                        (Source.advance buf: SOME (LIST (Vector.fromList (List.rev res))))
                         _ => case readHelper buf of
                             NONE => NONE
                             SOME e => helper (e :: res)
@@ -161,15 +160,22 @@ end
 
 structure Parser :> sig
     type t
+    
+    val pp: t -> string
+    val parse: Reader.t -> t option
 end = struct
     type t = unit
+
+    fun pp (p: t) string = "unimplemented"
+
+    fun parse (r: Reader.t): t option = NONE
 end
 
 fun main () = 
     let 
         val source = Source.fromStream TextIO.stdIn
-        val prog = Reader.expand source
-        val repr = case prog of SOME p => Expander.pp p | NONE => "ERROR YOU RETARD!"
+        val parsed = Option.composePartial (Parser.parse, Reader.expand) source
+        val repr = case prog of SOME p => Parser.pp parsed | NONE => "ERROR YOU RETARD!"
     in TextIO.output (TextIO.stdOut, repr ^ "\n")
     end
 
