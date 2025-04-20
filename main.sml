@@ -114,12 +114,12 @@ end = struct
         case e of
             ATOM s => s
             LIST l => 
-            let fun f (e, a) = a ^ " " ^ (pp e)
-            in "(" ^ (Vector.foldl f "" l) ^ ")"
+            let fun f (e, (fst, a)) = (false, a ^ (if fst then "" else " ") ^ (pp e))
+            in "(" ^ ((fn (_, x))(Vector.foldl f (true, "") l)) ^ ")"
             end
             FOREST l => 
-            let fun f (e, a) = a ^ "\n" ^ (pp e)
-            in Vector.foldl f "" l
+            let fun f (e, (fst a)) = (false, a ^ (if fst then "" "\n") ^ (pp e))
+            in (fn (_, x) => x) (Vector.foldl f (true, "") l)
             end
 
     local
