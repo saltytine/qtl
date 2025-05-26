@@ -1,0 +1,67 @@
+(deftype Class () (Type 0)
+  [ceo Class] [executive Class] [manager Class] [worker Class])
+
+(defstruct Person () (Type 0)
+  ...
+  [class Class])
+
+(deftype HasPowerOver
+  ([: p1 * Person] [: p2 * Person])
+  (Type 0)
+  [ceo (= (Person.class p1) Class.ceo) (HasPowerOver p1 p2)]
+  [eom
+    (= (Person.class p1) Class.executive)
+    (= (Person.class p2) Class.manager)
+    (HasPowerOver p1 p2)]
+  [eow
+    (= (Person.class p1) Class.executive)
+    (= (Person.class p2) Class.worker)
+    (HasPowerOver p1 p2)])
+
+
+```
+(claim Class (Type 0))
+(claim Class.ceo Class)
+(claim Class.executive Class)
+(claim Class.manager Class)
+(claim Class.worker Class)
+(alias Class (sum Class.ceo Class.executive Class.manager Class.worker))
+(alias Class.ceo (prim))
+(alias Class.executive (prim))
+(alias Class.manager (prim))
+(alias Class.worker (prim))
+
+
+(claim Person (Type 0))
+(alias Person (prod ... [Person.class Class]))
+
+
+(claim HasPowerOver (-> 
+  [: p1 * Person]
+  [: p2 * Person]
+  [Type 0]))
+(claim HasPowerOver.ceo (->
+  [: p1 * Person]
+  [: p2 * Person]
+  [= (Person.class p1 ceo)]
+  [HasPowerOver p1 p2]))
+(claim HasPowerOver.eom (->
+  [: p1 * Person]
+  [: p2 * Person]
+  [= (Person.class p1) Class.executive]
+  [= (Person.class p2) Class.manager]
+  [HasPowerOver p1 p2]))
+(claim HasPowerOver.eow (->
+  [: p1 * Person]
+  [: p2 * Person]
+  [= (Person.class p1) Class.executive]
+  [= (Person.class p2) Class.worker]
+  [HasPowerOver p1 p2]))
+(alias HasPowerOver.ceo (lambda (p1 p2 pf) (prim pf)))
+(alias HasPowerOver.eom (lambda (p1 p2 pf1 pf2) (prim pf1 pf2)))
+(alias HasPowerOver.eow (lambda (p1 p2 pf1 pf2) (prim pf1 pf2)))
+(alias HasPowerOver (lambda (p1 p2) (sum
+  [HasPowerOver.ceo p1 p2]
+  [HasPowerOver.eom p1 p2]
+  [HasPowerOver.eow p1 p2])))
+```
